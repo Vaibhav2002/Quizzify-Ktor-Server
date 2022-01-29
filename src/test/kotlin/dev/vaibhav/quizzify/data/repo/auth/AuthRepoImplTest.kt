@@ -5,9 +5,13 @@ import com.google.common.truth.Truth.assertThat
 import dev.vaibhav.quizzify.data.dataSource.user.UserDataSource
 import dev.vaibhav.quizzify.data.models.entities.User
 import dev.vaibhav.quizzify.data.models.response.Response
+import dev.vaibhav.quizzify.data.repo.auth.util.FakePasswordEncryptor
+import dev.vaibhav.quizzify.data.repo.auth.util.PasswordEncryptor
+import dev.vaibhav.quizzify.security.JwtSecurity
 import dev.vaibhav.quizzify.utils.Constants.PASSWORD_MISMATCH
 import dev.vaibhav.quizzify.utils.Constants.SUCCESS_LOGIN
 import dev.vaibhav.quizzify.utils.Constants.SUCCESS_REGISTER
+import dev.vaibhav.quizzify.utils.Constants.USERNAME_TAKEN
 import dev.vaibhav.quizzify.utils.Constants.USER_ALREADY_EXISTS
 import dev.vaibhav.quizzify.utils.Constants.USER_DOES_NOT_EXIST
 import dev.vaibhav.quizzify.utils.UserDoesNotExistException
@@ -30,6 +34,8 @@ class AuthRepoImplTest {
     lateinit var userDataSource: UserDataSource
 
     private lateinit var authRepo: AuthRepoImpl
+    private lateinit var passwordEncryptor: PasswordEncryptor
+    private lateinit var jwtSecurity: JwtSecurity
 
     private val email = "test@test.com"
     private val username = "testUser"
@@ -39,11 +45,13 @@ class AuthRepoImplTest {
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
-        authRepo = AuthRepoImpl(userDataSource)
+        passwordEncryptor = FakePasswordEncryptor()
+        jwtSecurity = JwtSecurity()
+        authRepo = AuthRepoImpl(userDataSource, passwordEncryptor, jwtSecurity)
         user = User(
             userName = username,
             email = email,
-            password = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+            password = passwordEncryptor.encryptPassword(password)
         )
     }
 
@@ -81,7 +89,7 @@ class AuthRepoImplTest {
         coEvery { userDataSource.getUserByEmail(email) } returns user
 
         // when
-        val response = authRepo.login(email, password) // password incorrect
+        val response = authRepo.login(email, password)
         println(response)
 
         // then
@@ -92,10 +100,11 @@ class AuthRepoImplTest {
     @Test
     fun `register is invoked but user already exists, return Resource Error with correct message`() = runTest {
         // given
+        coEvery { userDataSource.doesUserExistByEmail(email) } returns true
         coEvery { userDataSource.getUserByEmail(email) } returns user
 
         // when
-        val response = authRepo.registerUser(username, email, password) // password incorrect
+        val response = authRepo.registerUser(username, email, password)
         println(response)
 
         // then
@@ -104,9 +113,27 @@ class AuthRepoImplTest {
     }
 
     @Test
+    fun `register is invoked but username exists, return Resource Error with correct message`() = runTest {
+        // given
+        coEvery { userDataSource.doesUserExistByEmail(email) } returns false
+        coEvery { userDataSource.doesUserExistByUsername(username) } returns true
+        coEvery { userDataSource.getUserByEmail(email) } returns user
+
+        // when
+        val response = authRepo.registerUser(username, email, password)
+        println(response)
+
+        // then
+        assertThat(response).isInstanceOf(Response.Error::class.java)
+        assertThat(response.message).isEqualTo(USERNAME_TAKEN)
+    }
+
+    @Test
     fun `register is invoked and successfully registers, return Resource Success with correct message`() = runTest {
         // given
-        coEvery { userDataSource.getUserByEmail(email) } throws UserDoesNotExistException() andThen user
+        coEvery { userDataSource.doesUserExistByEmail(email) } returns false
+        coEvery { userDataSource.doesUserExistByUsername(username) } returns false
+        coEvery { userDataSource.getUserByEmail(email) } returns user
         coJustRun { userDataSource.insertUser(any()) }
 
         // when

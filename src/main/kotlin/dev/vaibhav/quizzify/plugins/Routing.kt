@@ -1,11 +1,13 @@
 package dev.vaibhav.quizzify.plugins
 
 import dev.vaibhav.quizzify.game.Game
+import dev.vaibhav.quizzify.routes.authRoutes
 import dev.vaibhav.quizzify.routes.createGameRoute
 import dev.vaibhav.quizzify.routes.joinGameRoute
 import io.ktor.application.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
@@ -14,6 +16,7 @@ fun Application.configureRouting() {
         get("/") {
             call.respond("Hey ya!")
         }
+        authRoutes()
         createGameRoute(game)
         joinGameRoute(game)
     }

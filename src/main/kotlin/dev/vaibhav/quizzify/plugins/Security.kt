@@ -5,7 +5,7 @@ import io.ktor.application.*
 import io.ktor.sessions.*
 import io.ktor.util.*
 
-fun Application.configureSecurity() {
+fun Application.configureSessions() {
     install(Sessions) {
         cookie<GameSession>("SESSION")
     }

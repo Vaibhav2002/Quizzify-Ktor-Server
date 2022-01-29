@@ -1,6 +1,7 @@
 package dev.vaibhav.quizzify.data.dataSource.user
 
 import dev.vaibhav.quizzify.data.models.entities.User
+import dev.vaibhav.quizzify.utils.Constants
 import dev.vaibhav.quizzify.utils.UserDoesNotExistException
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineDatabase
@@ -36,5 +37,27 @@ class UserDataSourceImpl(db: CoroutineDatabase) : UserDataSource {
 
     override suspend fun insertUser(user: User) {
         userCollection.insertOne(user)
+    }
+
+    override suspend fun doesUserExistById(id: String): Boolean {
+        return userCollection.findOneById(id) != null
+    }
+
+    override suspend fun doesUserExistByUsername(username: String): Boolean {
+        return try {
+            getUserByUsername(username)
+            true
+        } catch (e: UserDoesNotExistException) {
+            false
+        }
+    }
+
+    override suspend fun doesUserExistByEmail(email: String): Boolean {
+        return try {
+            getUserByEmail(email)
+            true
+        } catch (e: UserDoesNotExistException) {
+            false
+        }
     }
 }

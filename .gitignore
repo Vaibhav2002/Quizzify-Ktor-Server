@@ -1,2 +1,4 @@
 /build/
 /.gradle/
+/src/main/resources/application.conf
+/src/main/kotlin/dev/vaibhav/quizzify/security/JwtSecrets.kt

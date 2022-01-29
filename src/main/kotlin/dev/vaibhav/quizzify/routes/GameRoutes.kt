@@ -3,7 +3,9 @@ package dev.vaibhav.quizzify.routes
 import dev.vaibhav.quizzify.data.models.response.Response
 import dev.vaibhav.quizzify.game.Game
 import dev.vaibhav.quizzify.sesssion.GameSession
+import dev.vaibhav.quizzify.utils.Constants.JWT_AUTH
 import io.ktor.application.*
+import io.ktor.auth.*
 import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
 import io.ktor.response.*
@@ -14,11 +16,13 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlin.Exception
 
 fun Route.createGameRoute(game: Game) {
-    post("/create") {
-        if (game.doesGameAlreadyExist())
-            call.respond(status = HttpStatusCode.BadRequest, "Game already exists")
-        game.createGame()
-        call.respond(Response.Success<Unit>(message = "Game created successfully"))
+    authenticate(JWT_AUTH) {
+        post("/create") {
+            if (game.doesGameAlreadyExist())
+                call.respond(status = HttpStatusCode.BadRequest, "Game already exists")
+            game.createGame()
+            call.respond(Response.Success<Unit>(message = "Game created successfully").getSerialized())
+        }
     }
 }
 

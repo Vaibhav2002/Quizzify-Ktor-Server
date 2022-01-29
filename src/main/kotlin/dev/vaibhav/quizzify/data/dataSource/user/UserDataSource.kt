@@ -10,6 +10,12 @@ interface UserDataSource {
 
     suspend fun getUserByUsername(username: String): User
 
+    suspend fun doesUserExistById(id: String): Boolean
+
+    suspend fun doesUserExistByUsername(username: String): Boolean
+
+    suspend fun doesUserExistByEmail(email: String): Boolean
+
     suspend fun getAllUsersById(userIds: List<String>): List<User>
 
     suspend fun insertUser(user: User)
